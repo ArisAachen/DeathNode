@@ -94,7 +94,7 @@ ISL（Inter Switch Link）
 
 ##### 三层交换机
 三层交换机，本质上就是“带有路由功能的（二层）交换机”。路由属于OSI参照模型中第三层网络层的功能，因此带有第三层路由功能的交换机才被称为“三层交换机”。
-![three_level](../asset/three_route.png)
+![three_level](../asset/three_route.png)    
 在一台本体内，分别设置了交换机模块和路由器模块；而内置的路由模块与交换模块相同，使用ASIC硬件处理路由。
 
 同 vlan内  
