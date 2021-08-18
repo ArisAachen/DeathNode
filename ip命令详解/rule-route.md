@@ -1,5 +1,6 @@
 ## 说明
-ip-rule是路由策略的说明，指定了某些策略绑定ip route路由表
+ip-rule是路由策略的说明，指定了某些策略绑定ip route路由表  
+ip-route是路由表规则
 
 
 ## ip-rule
