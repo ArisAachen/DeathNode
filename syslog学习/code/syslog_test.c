@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <syslog.h>
 
 #include <sys/stat.h>
 #include <sys/un.h>
@@ -48,7 +49,17 @@ void write_test() {
     }
 }
 
+void log_test() {
+    openlog(">>>> syslog test", LOG_CONS | LOG_PID, LOG_USER);
+
+    syslog(LOG_INFO, "log test");
+
+    closelog();
+}
+
+
 int main() {
     write_test();
+    log_test();
     return 1;
 }
