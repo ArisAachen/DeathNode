@@ -92,7 +92,7 @@ void select_time_out() {
 }
 
 void opt_time_out(int fd) {
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &5, sizeof(int ));
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &5, sizeof(int));
 }
 
 
