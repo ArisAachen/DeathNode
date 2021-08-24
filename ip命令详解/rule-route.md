@@ -145,12 +145,13 @@ ip route add ROUTE
        SELECTOR := [ root PREFIX ] [ match PREFIX ] [ exact PREFIX ] [
                table TABLE_ID ] [ vrf NAME ] [ proto RTPROTO ] [ type
                TYPE ] [ scope SCOPE ]
+
+# scope SCOPE_VALUE，地址有效的区域的范围。可用的作用域列在文件“/etc/iproute2/rt_scopes“中。预定义的范围值是：  
+# global ，地址全局有效。      
+# site ，(仅IPv 6)该地址为站点本地地址，即该地址在此站点内有效。   
+# link ，该地址是本地链接，即它仅在此设备上有效。       
+# host ，该地址仅在此主机内有效。               
 ```
-scope SCOPE_VALUE，地址有效的区域的范围。可用的作用域列在文件“/etc/iproute2/rt_scopes“中。预定义的范围值是：  
-global ，地址全局有效。      
-site ，(仅IPv 6)该地址为站点本地地址，即该地址在此站点内有效。   
-link ，该地址是本地链接，即它仅在此设备上有效。       
-host ，该地址仅在此主机内有效。
 
 ``` shell
 ➜  ~ ip route show scope link

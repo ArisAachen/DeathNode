@@ -269,3 +269,20 @@ link/ether 86:9a:6a:ab:92:82 brd ff:ff:ff:ff:ff:ff
 ➜  ~ sudo ip link set dev eno1 netns `pgrep NetworkManager`
 
 ```
+
+### Bridge Slave Support
+
+``` shell 
+# Bridge Slave Support支持额外的特性
+              ip link set type bridge_slave [ fdb_flush ] [ state STATE
+              ] [ priority PRIO ] [ cost COST ] [ guard { on | off } ] [
+              hairpin { on | off } ] [ fastleave { on | off } ] [
+              root_block { on | off } ] [ learning { on | off } ] [
+              flood { on | off } ] [ proxy_arp { on | off } ] [
+              proxy_arp_wifi { on | off } ] [ mcast_router
+              MULTICAST_ROUTER ] [ mcast_fast_leave { on | off} ] [
+              mcast_flood { on | off } ] [ mcast_to_unicast { on | off }
+              ] [ group_fwd_mask MASK ] [ neigh_suppress { on | off } ]
+              [ vlan_tunnel { on | off } ] [ isolated { on | off } ] [
+              backup_port DEVICE ] [ nobackup_port ]
+```
