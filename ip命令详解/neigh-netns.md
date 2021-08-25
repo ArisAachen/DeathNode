@@ -51,7 +51,98 @@ ip-neighbour 地址转发表管理
 ➜  ~ ip neigh show 
 ```
 
+## ip-netns
+创建一个独立的network namespace，用于隔离网络资源 
 
+### ip netns
+显示所有命名空间信息
+``` shell
+       ip netns [ list ]
+```
+
+``` shell
+➜  ~ ip -details netns list                 
+ns1 (id: 0)
+```
+
+### ip netns add 
+新增一个命名空间
+
+``` shell 
+       ip netns add NETNSNAME
+```
+
+``` shell 
+# 新增一个命名空间
+➜  ~ sudo ip netns add ns1
+➜  ~ ip netns list        
+ns1
+```
+
+### ip netns attach (uos不支持)
+将pid 绑定到 netns
+
+``` shell
+       ip netns attach NETNSNAME PID
+```
+
+``` shell 
+➜  ~ sudo ip netns attach java_ns 1759
+➜  ~ ls -al /proc/1759/ns/
+lrwxrwxrwx 1 aris aris 0 8月  25 09:57 net -> 'net:[4026532000]'
+```
+
+### ip netns set
+设置命名空间的id
+``` shell 
+       ip netns set NETNSNAME NETNSID
+```
+
+``` 
+# 设置命名空间，仅在当前命名空间内可设置
+➜  ~ sudo ip netns exec ns1 ip netns set ns1 999
+➜  ~ sudo ip netns exec ns1 ip netns list        
+java_ns
+ns1 (id: 999)
+``` 
+
+### ip netns pids
+列出命名空间内的进程
+
+``` shell
+       ip netns pids NETNSNAME
+```
+
+``` shell
+# 在命名空间内执行
+➜  ~ sudo ip netns exec ns1 wireshark
+➜  ~ sudo ip netns exec ns1 ls -al /proc/27219/ns
+lrwxrwxrwx 1 aris aris 0 8月  25 10:15 net -> 'net:[4026532000]'
+```
+
+### ip netns monitor
+监控命名空间新增和移除
+``` shell
+➜  ~ sudo ip netns delete ns1
+➜  ~ sudo ip netns monitor
+delete ns1
+```
+
+### ip netns exec
+在命名空间内执行操作
+``` shell
+       ip [-all] netns exec [ NETNSNAME ] command...
+```
+
+``` shell
+# 新增设备
+➜  ~ sudo ip netns exec ns1 ip link add name v_ns1 type veth peer name v1
+➜  ~ sudo ip netns exec ns1 ip link show type veth                       
+2: v1@v_ns1: <BROADCAST,MULTICAST,M-DOWN> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 46:a7:c8:f7:33:18 brd ff:ff:ff:ff:ff:ff
+3: v_ns1@v1: <BROADCAST,MULTICAST,M-DOWN> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether fa:67:4c:67:76:26 brd ff:ff:ff:ff:ff:ff
+```
 
 
 ## 参考
