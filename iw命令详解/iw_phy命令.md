@@ -63,6 +63,15 @@ WoWLAN is disabled.
 command failed: Operation not supported (-95)
 ```
 
+## iw phy set
+
+### ip phy set netns 
+
+``` shell
+➜  ~ sudo iw phy phy0 set netns 2086
+```
+
+
 
 
 ## 参考
