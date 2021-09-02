@@ -116,3 +116,46 @@ Station f0:41:c8:75:7b:f0 (on wlan1)
 ```
 
 ### iw dev station set vlan
+STA加入vlan
+
+命令行参数
+``` shell 
+	dev <devname> station set <MAC address> vlan <ifindex>
+		Set an AP VLAN for this station.
+```
+
+``` shell
+root@OpenWrt:~# iw dev wlan1 station set f0:41:c8:75:7b:f0 vlan 10
+```
+
+### iw dev station set plink_action 
+mesh支持
+
+命令行参数
+``` shell
+	dev <devname> station set <MAC address> plink_action <open|block>
+		Set mesh peer link action for this station (peer).
+```
+
+### iw dev station get
+获取连接STA的信息
+``` shell
+root@OpenWrt:~# iw dev wlan1 station get f0:41:c8:75:7b:f0
+Station f0:41:c8:75:7b:f0 (on wlan1)
+        inactive time:  6736 ms
+        rx bytes:       3552758
+        rx packets:     27847
+        tx bytes:       50944967
+        tx packets:     37140
+        tx retries:     12339
+        tx failed:      345
+        rx drop misc:   676
+        signal:         -30 dBm
+        signal avg:     -29 dBm
+        tx bitrate:     117.0 MBit/s MCS 14
+        tx duration:    0 us
+        rx bitrate:     6.0 MBit/s
+        rx duration:    0 us
+```
+
+## iw dev mesh
