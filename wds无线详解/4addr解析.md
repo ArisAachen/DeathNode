@@ -44,7 +44,8 @@ Source:Z
 
 
 ## 参考
-https://www.ieee802.org/1/files/public/docs2008/avb-nfinn-802-11-bridging-0308-v3.pdf
+https://www.ieee802.org/1/files/public/docs2008/avb-nfinn-802-11-bridging-0308-v3.pdf        
+https://blog.csdn.net/neilengineer/article/details/46285017
 
 
 
