@@ -42,6 +42,8 @@ int main(int argc, char **argv) {
     while (1) {
         if (read(fd, buf, sizeof(buf)) == -1) {
             if (errno == EINTR) {
+
+
                 printf("signal break, continue to read \n");
                 continue;
             }
