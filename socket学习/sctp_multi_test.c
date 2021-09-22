@@ -194,8 +194,26 @@ void sctp_server_test() {
 
         if (flags & MSG_NOTIFICATION) {
             printf("rcv kernel msg \n");
+            struct sctp_assoc_change *change;
+            struct sctp_send_failed *failed;
+            struct sockaddr *res;
+            sctp_assoc_t id;
 
             union sctp_notification *notify = (union sctp_notification *) buf;
+            switch (notify->sn_header.sn_type) {
+                case SCTP_ASSOC_CHANGE:
+                    change = notify->sn_assoc_change;
+                    if (change->sac_state == SCTP_COMM_UP)
+                        printf("up \n");
+
+                    id = change->sac_assoc_id;
+                    sctp_getladdrs(fd, id, &res);
+                    for (int index = 0; res[index]; index++)
+                        print_addr(res[index]);
+                    sctp_freeladdrs(res);
+                case SCTP_SEND_FAILED:
+                    failed = notify->sn_send_failed;
+            }
 
         }
         printf("rcv msg %s \n", buf);
