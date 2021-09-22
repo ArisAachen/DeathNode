@@ -141,6 +141,68 @@ void sctp_multi_server_test() {
 }
 
 
+void sctp_multi_options_client_test() {
+    int fd = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP);
+    if (fd == -1)
+        print_err("socket");
+
+    struct sctp_event_subscribe sub = {
+            .sctp_data_io_event = 1,
+            .sctp_association_event = 1,
+            .sctp_send_failure_event = 1,
+    };
+
+    if (setsockopt(fd, SOL_SCTP, SCTP_EVENTS, &sub, sizeof(sub)) == -1)
+        print_err("set sock opt");
+
+    struct sctp_sndrcvinfo info = {
+            .sinfo_timetolive = 1,
+    };
+
+    int close_time = 10;
+    if (setsockopt(fd, SOL_SCTP, SCTP_AUTOCLOSE, &close_time, sizeof(int)) == -1)
+        print_err("auto close");
+
+}
+
+void sctp_server_test() {
+    int fd = socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
+    if (fd == -1)
+        print_err("socket");
+
+    struct sockaddr_in addr = {
+            .sin_family = AF_INET,
+            .sin_addr = htonl(INADDR_ANY),
+            .sin_port = htons(8080),
+    };
+
+    if (bind(fd, (struct sockaddr *) &addr, sizeof(struct sockaddr)) == -1)
+        print_err("bind");
+
+    if (listen(fd, SOMAXCONN) == -1)
+        print_err("listen");
+
+#define BUF_SIZE
+    char *buf = (char *) malloc(BUF_SIZE);
+    while (1) {
+        socklen_t len;
+        int flags;
+        struct sockaddr addr;
+        struct sctp_sndrcvinfo info;
+        if (sctp_recvmsg(fd, buf, BUF_SIZ, addr, &len, &info, &flags) == -1)
+            print_err("rcv msg");
+
+        if (flags & MSG_NOTIFICATION) {
+            printf("rcv kernel msg \n");
+
+            union sctp_notification *notify = (union sctp_notification *) buf;
+
+        }
+        printf("rcv msg %s \n", buf);
+    }
+}
+
+
 int main() {
     switch (fork()) {
         case 0:
