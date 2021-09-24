@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include <sys/un.h>
 #include <sys/socket.h>
@@ -81,45 +82,86 @@ void socket_pair_test() {
     if (socketpair(AF_LOCAL, SOCK_STREAM, 0, pair_fd) == -1)
         exit(-1);
 
-    union {
-        struct cmsghdr cmg;
-        char control_msg[CMSG_SPACE(sizeof(int))];
-    } union_cmg;
+
+    struct cmsghdr *cmsg;
+
+    int fd = open("/tmp/test.file", O_RDWR | O_CREAT, 0777);
+    if (fd == -1) {
+        printf("open file failed, err: %s \n", strerror(errno));
+        exit(-1);
+    }
+
+    printf("open fd success, %d \n", fd);
 
     struct msghdr msg;
-    &union_cmg.cmg = CMSG_FIRSTHDR(&msg);
-    union_cmg.cmg.cmsg_type = SOL_SOCKET;
-    union_cmg.cmg.cmsg_level = SCM_RIGHTS;
-    &union_cmg.control_msg = CMSG_DATA(&union_cmg.cmg);
+    char rcv_msg[512];
+    struct iovec vec[2];
+
+    char *control_len[CMSG_SPACE(sizeof(int))];
 
 
+
+    int get_fd;
     switch (fork()) {
         case 0:
+            close(pair_fd[1]);
             sleep(2);
-            send(pair_fd[0], buf, 128, 0);
+            cmsg = CMSG_FIRSTHDR(&msg);
+            if (cmsg == NULL) {
+                printf("cannot get cmsg \n");
+                exit(-1);
+            }
+            vec[0].iov_base = (void *) rcv_msg;
+            vec[0].iov_len = 512;
+            msg.msg_control = control_len;
+            msg.msg_controllen = sizeof(control_len);
+            msg.msg_iov = vec;
+            msg.msg_iovlen = 1;
+            cmsg->cmsg_type = SOL_SOCKET;
+            cmsg->cmsg_level = SCM_RIGHTS;
+            cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+            *(int *) CMSG_DATA(cmsg) = fd;
+
+            if (sendmsg(pair_fd[0], &msg, 0) == -1) {
+                printf("snd failed, err: %s \n", strerror(errno));
+                exit(-1);
+            }
+            printf("snd success \n");
             break;
         case -1:
-
-
+            printf("fork failed \n");
+            break;
         default:
-            recv(pair_fd[1], buf, 512, 0);
+            // parent close fd
+            close(fd);
+            close(pair_fd[0]);
+            vec[0].iov_base = (void *) rcv_msg;
+            vec[0].iov_len = 512;
+            msg.msg_control = control_len;
+            msg.msg_controllen = sizeof(control_len);
+            msg.msg_iov = vec;
+            msg.msg_iovlen = 1;
+            if (recvmsg(pair_fd[1], &msg, 0) == -1) {
+                printf("rcv msg failed, err: %s \n", strerror(errno));
+                exit(-1);
+            }
+            printf("rcv success \n");
+            for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+                printf("rcv cmsg \n");
+                if (cmsg->cmsg_type == SOL_SOCKET && cmsg->cmsg_level == SCM_RIGHTS) {
+                    get_fd = *(int *) CMSG_DATA(cmsg);
+                    printf("get fd is %d \n", get_fd);
+                }
+            }
+
     }
 
 }
 
 
 int main() {
-    switch (fork()) {
-        case 0:
-            sleep(3);
-            unix_client_test();
-            break;
-        case -1:
-            break;
-        default:
-            unix_server_test();
-            break;
-    }
+
+    socket_pair_test();
 
 
     return 1;
