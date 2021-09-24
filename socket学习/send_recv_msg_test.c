@@ -30,7 +30,7 @@ void udp_send_msg_test() {
             .sin_port = htons(1080),
     };
 
-    if (inet_pton(AF_INET, "192.168.1.205", &in.sin_addr) == -1)
+    if (inet_pton(AF_INET, "10.20.43.54", &in.sin_addr) == -1)
         print_err("ntop");
 
 #define COUNT_VEC 5
@@ -41,8 +41,8 @@ void udp_send_msg_test() {
     vec[0].iov_len = sizeof(text);
 
     struct msghdr msg = {
-            .msg_control = &in,
-            .msg_controllen = INET_ADDRSTRLEN,
+            .msg_name = (void *) &in,
+            .msg_namelen = INET_ADDRSTRLEN,
             .msg_iov = vec,
             .msg_iovlen = 1,
             .msg_flags = 0,
@@ -65,6 +65,10 @@ void udp_rcv_msg_test() {
     if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &val, sizeof(struct timeval)) == -1)
         print_err("set sock opt");
 
+    int allow = 1;
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &allow, sizeof(int)) == -1)
+        print_err("reuse port");
+
     struct sockaddr_in in = {
             .sin_family = AF_INET,
             .sin_addr = htonl(INADDR_ANY),
@@ -74,18 +78,28 @@ void udp_rcv_msg_test() {
     if (bind(fd, (struct sockaddr *) &in, sizeof(struct sockaddr)) == -1)
         print_err("bind");
 
-    struct iovec vec[COUNT_VEC];
+    printf("bind end \n");
+
+    struct sockaddr_in in_1;
+    struct cmsghdr get_head;
     struct msghdr msg = {
-            .msg_iov = vec,
-            .msg_iovlen = COUNT_VEC,
+            .msg_name = &in_1,
+            .msg_control = (void *)&get_head,
+            .msg_controllen = CMSG_SPACE(sizeof(struct cmsghdr)),
     };
 
     if (recvmsg(fd, &msg, 0) == -1)
         print_err("rcv msg");
 
-
-    for (struct cmsghdr *title = CMSG_FIRSTHDR(&msg); title; title = CMSG_NXTHDR(&msg, title))
+    printf("rcv end \n");
+    for (struct cmsghdr *title = CMSG_FIRSTHDR(&msg); title; title = CMSG_NXTHDR(&msg, title)) {
         printf("level is %d, type is %d \n", title->cmsg_level, title->cmsg_type);
+        if (title->cmsg_level == SOL_SOCKET && title->cmsg_type == SO_RCVTIMEO) {
+            struct timeval *val = (struct timeval *) CMSG_DATA(title);
+            printf("time val tcv time val is %ld \n", val->tv_sec);
+        }
+    }
+
 }
 
 
@@ -93,12 +107,14 @@ int main() {
 
     switch (fork()) {
         case 0:
-            sleep(2);
+            sleep(5);
             udp_send_msg_test();
+            break;
         case -1:
 
         default:
             udp_rcv_msg_test();
+            break;
     }
 
     return 1;
