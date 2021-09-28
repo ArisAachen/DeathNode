@@ -40,7 +40,7 @@ void udp_server_test() {
     };
 
     int opt = 1;
-    if (setsockopt(fd, IPPROTO_IP, IP_PKTINFO, &opt, sizeof(int)) == -1)
+    if (setsockopt(fd, SOL_IP, IP_PKTINFO, &opt, sizeof(int)) == -1)
         bad_exit("pkt");
 
     if (bind(fd, (struct sockaddr *) &in, sizeof(struct sockaddr)) == -1)
@@ -49,15 +49,15 @@ void udp_server_test() {
     char buf[BUFSIZ];
     struct msghdr hdr;
     struct iovec vec[1];
-    char control[CMSG_SPACE(sizeof(struct sockaddr))];
+    char control[1000];
 
     vec[0].iov_base = buf;
     vec[0].iov_len = BUFSIZ;
 
     hdr.msg_name = &in;
-    hdr.msg_namelen = sizeof(struct sockaddr_in);
+    hdr.msg_namelen = sizeof(in);
     hdr.msg_control = control;
-    hdr.msg_controllen = CMSG_SPACE(sizeof(struct sockaddr));
+    hdr.msg_controllen = 1000;
     hdr.msg_iov = vec;
     hdr.msg_iovlen = 1;
 
@@ -67,22 +67,26 @@ void udp_server_test() {
         bad_exit("rcv msg");
 
     for (struct cmsghdr *cmg = CMSG_FIRSTHDR(&hdr); cmg; cmg = CMSG_NXTHDR(&hdr, cmg)) {
-        if (cmg->cmsg_type == IPPROTO_IP && cmg->cmsg_level == IP_PKTINFO) {
+        if (cmg->cmsg_type == IP_PKTINFO && cmg->cmsg_level == SOL_IP) {
             struct in_pktinfo *info = (struct in_pktinfo *) CMSG_DATA(cmg);
-            char *address;
+            if (info == NULL)
+                bad_exit("info null");
+
+            char address[128];
             if (inet_ntop(AF_INET, &info->ipi_addr, address, INET_ADDRSTRLEN) == NULL)
                 bad_exit("rcv address");
-            printf("rcv address is %s \n", address);
+            printf("rcv address is %s, index is %d \n", address,info->ipi_ifindex);
         } else {
             printf("type is %d, level is %d \n", cmg->cmsg_type, cmg->cmsg_level);
         }
     }
 
     char address[128];
-    if (inet_ntop(AF_INET, hdr.msg_name, address, INET_ADDRSTRLEN) == NULL)
+    struct in_addr *inAddr = hdr.msg_name;
+    if (inet_ntop(AF_INET, inAddr, address, INET_ADDRSTRLEN) == NULL)
         bad_exit("rcv address");
 
-    printf("src address is %s \n", address);
+    printf("src address is %s flags is %d \n", address, hdr.msg_flags);
 
     printf("rcv msg is %s \n", buf);
 
