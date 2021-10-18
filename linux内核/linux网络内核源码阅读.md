@@ -1,0 +1,192 @@
+``` c
+// 定义系统调用
+SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
+{
+	return __sys_socket(family, type, protocol);
+}
+
+int __sys_socket(int family, int type, int protocol)
+{   
+    // 创建一个类型的对象,主要用于与用户进程交互
+	struct socket *sock;    
+	retval = sock_create(family, type, protocol, &sock);    
+
+
+}
+
+
+// 创建一个sock对象,抽象用于与协议栈交互,
+// 其中将sock对象隐藏在socket对象中
+int sock_create(int family, int type, int protocol, struct socket **res)
+{
+    // 指定当前的命名空间和协议栈等
+	return __sock_create(current->nsproxy->net_ns, family, type, protocol, res, 0);
+}
+
+// 创建 sock对象
+int __sock_create(struct net *net, int family, int type, int protocol,
+			 struct socket **res, int kern)
+{
+    // socket对象
+	struct socket *sock;    
+    // 安全创建的hook层
+	err = security_socket_create(family, type, protocol, kern);
+
+    // 分配了socket,其中指定了文件类型  uid 和 gid  分配了inode节点
+	sock = sock_alloc();    
+    // 记录type
+	sock->type = type;   
+    // 地址协议族集合, 根据family找出当前的协议族
+    // 来源于 sock_register   我们以 ipv4 为例  af_inet.c   	(void)sock_register(&inet_family_ops);
+	const struct net_proto_family *pf;     
+	pf = rcu_dereference(net_families[family]);   
+
+    // 此处是创建了 sock 对象, 以 ipv4为例 inet_family_ops->create
+	err = pf->create(net, sock, protocol, kern);     
+}
+
+
+
+// 创建 sock 对象
+static int inet_create(struct net *net, struct socket *sock, int protocol,
+		       int kern)
+{
+    // 标记当前的状态为未连接
+	sock->state = SS_UNCONNECTED;
+    // 查找套接字类型赋给 answer  来源于 inet_register_protosw(q);   inetsw_array
+	list_for_each_entry_rcu(answer, &inetsw[sock->type], list) {}
+
+    // 保存地址族的ops 以 stream 为例, ops 保存的是套接字类型的处理  inet_stream_ops 
+	sock->ops = answer->ops;
+    // 保存套接字对于 tcp udp处理 用于保存 sock 对象
+    answer_prot = answer->prot;
+    // GFP_KERNEL指定优先级分配内存  内核优先级
+	sk = sk_alloc(net, PF_INET, GFP_KERNEL, answer_prot, kern);    
+    // 将 sock 专为 inet_sock
+	inet = inet_sk(sk);
+    // 初始化 发送接收缓存
+	sock_init_data(sock, sk);
+    // 设置sock的析构函数
+	sk->sk_destruct	   = inet_sock_destruct;    
+	sk->sk_protocol	   = protocol;    
+}
+
+
+// 分配 sock 对象
+struct sock *sk_alloc(struct net *net, int family, gfp_t priority,
+		      struct proto *prot, int kern)
+{
+    // kmalloc分配内存
+	sk = sk_prot_alloc(prot, priority | __GFP_ZERO, family);
+	if (sk) { 
+        // 保存地址族
+		sk->sk_family = family; 
+        // 保存 tcp_prot 或者 udp_prot
+		sk->sk_prot = sk->sk_prot_creator = prot;     
+        // 暂时不知道做啥
+		sk->sk_kern_sock = kern;   
+
+        // 引用计数
+		sk->sk_net_refcnt = kern ? 0 : 1;                       
+        
+        // 保存 sock 对象的命名空间
+		sock_net_set(sk, net);    
+
+        // 设计提交发送队列的子杰数
+		refcount_set(&sk->sk_wmem_alloc, 1); 
+        // sock 对象能分配的最大的buff  根据当前的 cgroup 
+		mem_cgroup_sk_alloc(sk);                   
+    }
+
+}
+
+// 初始化数据 分配缓存区大小
+void sock_init_data(struct socket *sock, struct sock *sk)
+{
+    // 记录缓存区大小
+	sk->sk_allocation	=	GFP_KERNEL;
+	sk->sk_rcvbuf		=	sysctl_rmem_default;
+	sk->sk_sndbuf		=	sysctl_wmem_default;
+	sk->sk_state		=	TCP_CLOSE;
+
+    sk_set_socket(sk, sock);    
+
+    // 保存 sock 对象的信息
+	if (sock) {
+		sk->sk_type	=	sock->type;
+		sk->sk_wq	=	sock->wq;
+		sock->sk	=	sk;
+		sk->sk_uid	=	SOCK_INODE(sock)->i_uid;   
+    }     
+
+    // 设置 接收缓存区为空
+	sk_rx_queue_clear(sk);    
+}
+
+// 记录sock 的 socket, 之前记录过 socket 的 sock
+// 记录要发生的字段为空
+static inline void sk_set_socket(struct sock *sk, struct socket *sock)
+{
+	sk_tx_queue_clear(sk);
+	sk->sk_socket = sock;
+}
+
+```
+
+
+``` c
+// ipv4 地址协议族
+static const struct net_proto_family inet_family_ops = {
+	.family = PF_INET,
+	.create = inet_create,
+	.owner	= THIS_MODULE,
+};
+
+// 套接字类型 流式
+static struct inet_protosw inetsw_array[] =
+{
+	{
+		.type =       SOCK_STREAM,
+		.protocol =   IPPROTO_TCP,
+		.prot =       &tcp_prot,
+		.ops =        &inet_stream_ops,
+		.flags =      INET_PROTOSW_PERMANENT |
+			      INET_PROTOSW_ICSK,
+	},
+
+	{
+		.type =       SOCK_DGRAM,
+		.protocol =   IPPROTO_UDP,
+		.prot =       &udp_prot,
+		.ops =        &inet_dgram_ops,
+		.flags =      INET_PROTOSW_PERMANENT,
+       },
+
+       {
+		.type =       SOCK_DGRAM,
+		.protocol =   IPPROTO_ICMP,
+		.prot =       &ping_prot,
+		.ops =        &inet_sockraw_ops,
+		.flags =      INET_PROTOSW_REUSE,
+       },
+
+       {
+	       .type =       SOCK_RAW,
+	       .protocol =   IPPROTO_IP,	/* wild card */
+	       .prot =       &raw_prot,
+	       .ops =        &inet_sockraw_ops,
+	       .flags =      INET_PROTOSW_REUSE,
+       }
+};
+
+
+```
+
+
+
+
+
+``` c
+list_for_each_entry_rcu
+
+```
