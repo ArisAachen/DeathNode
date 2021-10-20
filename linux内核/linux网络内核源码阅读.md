@@ -53,7 +53,7 @@ static int inet_create(struct net *net, struct socket *sock, int protocol,
 {
     // 标记当前的状态为未连接
 	sock->state = SS_UNCONNECTED;
-    // 查找套接字类型赋给 answer  来源于 inet_register_protosw(q);   inetsw_array
+    // 查找套接字类型SOCK_STREAM赋给 answer  来源于 inet_register_protosw(q);   inetsw_array
 	list_for_each_entry_rcu(answer, &inetsw[sock->type], list) {}
 
     // 保存地址族的ops 以 stream 为例, ops 保存的是套接字类型的处理  inet_stream_ops 
@@ -182,6 +182,44 @@ static struct inet_protosw inetsw_array[] =
 
 ```
 
+
+
+``` c
+// 发起连接
+SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
+		int, addrlen) 
+{
+	return __sys_connect(fd, uservaddr, addrlen);
+}
+
+int __sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
+{
+    // socket 保存了 inode, 根据inode 寻找到socket
+	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+	// 复制用户的地址 到内核分配的 地址 sockaddr_storage
+	err = move_addr_to_kernel(uservaddr, addrlen, &address);
+	// 针对tcp，此处调用的为 inet_stream_ops.connect
+	err = sock->ops->connect(sock, (struct sockaddr *)&address, addrlen,
+				 sock->file->f_flags);		
+}
+
+int inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
+			int addr_len, int flags)
+{
+	lock_sock(sock->sk);
+	err = __inet_stream_connect(sock, uaddr, addr_len, flags, 0);
+	release_sock(sock->sk); 
+}
+
+static struct socket *sockfd_lookup_light(int fd, int *err, int *fput_needed) 
+{
+	struct fd f = fdget(fd);    
+}
+
+
+
+
+```
 
 
 
