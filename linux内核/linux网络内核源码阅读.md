@@ -270,10 +270,77 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	struct rtable *rt;
 	// nexthop 目的地地址 
 	// inet->inet_saddr 本地地址
+	// 寻找路由表
 	rt = ip_route_connect(fl4, nexthop, inet->inet_saddr,
 			      RT_CONN_FLAGS(sk), sk->sk_bound_dev_if,
 			      IPPROTO_TCP,
 			      orig_sport, orig_dport, sk);
+			      
+	// tcp 不支持 多播 和 广播		      
+	if (rt->rt_flags & (RTCF_MULTICAST | RTCF_BROADCAST)) {}	
+	
+	// 将端口设置在 tcp 层 inet_sock
+    inet->inet_dport = usin->sin_port;	
+    // 设置 sock* 对象的地址	
+    sk_daddr_set(sk, daddr);
+    // tcp 分段
+	tp->rx_opt.mss_clamp = TCP_MSS_DEFAULT; 
+	// 设置 sock* 对象, 标记 tcp 状态机
+	tcp_set_state(sk, TCP_SYN_SENT);
+	
+	err = tcp_connect(sk);		   	      
+}
+
+//  
+int tcp_connect(struct sock *sk)
+{
+    // 转换为 tcp_sock* 子类
+	struct tcp_sock *tp = tcp_sk(sk);
+	
+	// 初始化一堆 tcp 参数
+	// 分配 tcp header
+	// 初始化窗口大小
+	tcp_connect_init(sk);	
+	// 分配 skb 内存
+	buff = sk_stream_alloc_skb(sk, 0, sk->sk_allocation, true);	
+	// 写入 第一个 sync
+	tcp_init_nondata_skb(buff, tp->write_seq++, TCPHDR_SYN);	
+	// 将数据加到 sock* 对象的 buffer 末尾
+	tcp_connect_queue_skb(sk, buff);
+	// 设置 ecn 阻塞
+	tcp_ecn_send_syn(sk, buff);	
+	
+	// 发送数据
+	err = tp->fastopen_req ? tcp_send_syn_data(sk, buff) :
+	      tcp_transmit_skb(sk, buff, 1, sk->sk_allocation);	
+}
+
+static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
+			    gfp_t gfp_mask)
+{
+	return __tcp_transmit_skb(sk, skb, clone_it, gfp_mask,
+				  tcp_sk(sk)->rcv_nxt);
+}
+
+static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
+			      int clone_it, gfp_t gfp_mask, u32 rcv_nxt)
+{
+
+}
+
+static void tcp_connect_queue_skb(struct sock *sk, struct sk_buff *skb)
+{
+    // 获取 tcp 控制信息
+    // 包括 当前发送的 seq 号 和结束的 seq 号
+	struct tcp_skb_cb *tcb = TCP_SKB_CB(skb);
+	tcb->end_seq += skb->len;
+	
+	__skb_header_release(skb);		
+	// 放入 sock* 的 buffer 末尾
+	tcp_add_write_queue_tail(sk, skb);	
+	
+	sk_wmem_queued_add(sk, skb->truesize);	
+	sk_mem_charge(sk, skb->truesize);	
 }
 
 static inline struct rtable *ip_route_connect(struct flowi4 *fl4,
@@ -287,49 +354,6 @@ static inline struct rtable *ip_route_connect(struct flowi4 *fl4,
 			      sport, dport, sk);
 			      
 	return ip_route_output_flow(net, fl4, sk);			      
-}					      
-
-struct rtable *ip_route_output_flow(struct net *net, struct flowi4 *flp4,
-				    const struct sock *sk)
-{
-	struct rtable *rt = __ip_route_output_key(net, flp4);
-}
-
-static inline struct rtable *__ip_route_output_key(struct net *net,
-						   struct flowi4 *flp)
-{
-	return ip_route_output_key_hash(net, flp, NULL);
-}
-
-struct rtable *ip_route_output_key_hash(struct net *net, struct flowi4 *fl4,
-					const struct sk_buff *skb)
-{
-	rth = ip_route_output_key_hash_rcu(net, fl4, &res, skb);
-}
-
-struct rtable *ip_route_output_key_hash_rcu(struct net *net, struct flowi4 *fl4,
-					    struct fib_result *res,
-					    const struct sk_buff *skb)
-{
-	err = fib_lookup(net, fl4, res, 0);
-}
-
-static inline int fib_lookup(struct net *net, const struct flowi4 *flp,
-			     struct fib_result *res, unsigned int flags)
-{
-    // 找到main理由表 
-	struct fib_table *tb;
-	tb = fib_get_table(net, RT_TABLE_MAIN);
-	
-	// 在路由表中, 寻找路由规则
-	if (tb)
-		err = fib_table_lookup(tb, flp, res, flags | FIB_LOOKUP_NOREF);	
-}
-
-int fib_table_lookup(struct fib_table *tb, const struct flowi4 *flp,
-		     struct fib_result *res, int fib_flags)
-{
-
 }
 
 static struct socket *sockfd_lookup_light(int fd, int *err, int *fput_needed) 
@@ -340,6 +364,15 @@ static struct socket *sockfd_lookup_light(int fd, int *err, int *fput_needed)
 struct inet_sock {
 	// 必须放在第一个字节, 是因为想要模拟继承的效果 sk是inet_sock的父类
 	struct sock		sk;
+}
+
+struct rtable 
+{
+    struct rtable   *rt_next;/*指向下一个rtable表项 */
+    unsigned long   rt_dst;/*目的IP地址*/
+    unsigned long   rt_gateway;/*网关地址 */
+    unsigned short  rt_mss;/*MSS值*/
+    struct device   *rt_dev;/*与该路由项绑定的接口*/
 }
 
 struct proto tcp_prot = {
