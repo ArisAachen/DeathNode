@@ -41,6 +41,8 @@ func MSRedis(user string, id string) error {
 		Addr:    "127.0.0.1:6379",
 	})
 
+	defer client.Close()
+
 	left, err := client.Get(ctx, "goods:id").Int()
 	if err != nil {
 		log.Printf("get last failed, err: %v \n", err)
