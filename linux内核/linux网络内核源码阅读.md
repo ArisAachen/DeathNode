@@ -251,8 +251,15 @@ int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 		if (sk->sk_state != TCP_CLOSE)
 			goto out;	
 		// 调用 sock* 底层 connect, 此方法已通过.prot = &tcp_prot绑定,
-		err = sk->sk_prot->connect(sk, uaddr, addr_len);		
-	}	
+		err = sk->sk_prot->connect(sk, uaddr, addr_len);
+		// 记录当前为连接状态
+		sock->state = SS_CONNECTING;						
+	}
+
+	// 是否为阻塞, 为阻塞则获取超时  否则将超时设为0
+	timeo = sock_sndtimeo(sk, flags & O_NONBLOCK);		
+
+
 }
 
 int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
@@ -287,8 +294,14 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	tp->rx_opt.mss_clamp = TCP_MSS_DEFAULT; 
 	// 设置 sock* 对象, 标记 tcp 状态机
 	tcp_set_state(sk, TCP_SYN_SENT);
-	
-	err = tcp_connect(sk);		   	      
+	// 发起tcp连接	
+	err = tcp_connect(sk);	
+
+	// 查看是否f失败
+	if (err)
+		goto failure;		
+
+	return 0;		
 }
 
 //  
@@ -314,7 +327,11 @@ int tcp_connect(struct sock *sk)
 	err = tp->fastopen_req ? tcp_send_syn_data(sk, buff) :
 	      tcp_transmit_skb(sk, buff, 1, sk->sk_allocation);	
 }
+```
 
+ ![kernel_write](../asset/kernel_write.jpg)
+
+``` c
 static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
 			    gfp_t gfp_mask)
 {
