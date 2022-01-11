@@ -260,6 +260,7 @@ int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 	timeo = sock_sndtimeo(sk, flags & O_NONBLOCK);		
 
 
+
 }
 
 int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
@@ -342,8 +343,12 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
 static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 			      int clone_it, gfp_t gfp_mask, u32 rcv_nxt)
 {
-
+	// 此处调用了 
+	err = icsk->icsk_af_ops->queue_xmit(sk, skb, &inet->cork.fl);
 }
+
+
+
 
 static void tcp_connect_queue_skb(struct sock *sk, struct sk_buff *skb)
 {
@@ -439,6 +444,22 @@ struct proto tcp_prot = {
 	.diag_destroy		= tcp_abort,
 };
 
+static const struct inet_connection_sock_af_ops dccp_ipv4_af_ops = {
+	.queue_xmit	   = ip_queue_xmit,
+	.send_check	   = dccp_v4_send_check,
+	.rebuild_header	   = inet_sk_rebuild_header,
+	.conn_request	   = dccp_v4_conn_request,
+	.syn_recv_sock	   = dccp_v4_request_recv_sock,
+	.net_header_len	   = sizeof(struct iphdr),
+	.setsockopt	   = ip_setsockopt,
+	.getsockopt	   = ip_getsockopt,
+	.addr2sockaddr	   = inet_csk_addr2sockaddr,
+	.sockaddr_len	   = sizeof(struct sockaddr_in),
+#ifdef CONFIG_COMPAT
+	.compat_setsockopt = compat_ip_setsockopt,
+	.compat_getsockopt = compat_ip_getsockopt,
+#endif
+};
 ```
 
 
