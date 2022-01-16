@@ -12,6 +12,10 @@ constexpr int const_message_len() {
     return 512;
 }
 
+struct SimplePod {
+    int typ;
+};
+
 struct CheckType {
     int checksum_ {1};
     std::string message_ {"check sum type"};
@@ -21,18 +25,19 @@ struct CheckType {
     CheckType(CheckType &&);
 
     CheckType& operator=(CheckType &);
-    CheckType&& operator=(CheckType &&);
+    CheckType& operator=(CheckType &&);
 
     ~CheckType();
 };
 
+std::ostream & operator << (std::ostream & out, CheckType & typ);
 
 template <typename Type, Type v>
 struct base_constant {
     static const Type value = v;
     using value_type = Type;
     using base_type = base_constant<Type, v>;
-    value_type operator() {return v;}
+    operator value_type () {return v;}
 };
 
 
@@ -44,6 +49,24 @@ void switch_test(Type && arg0, Type && arg1);
 
 
 
+template <typename Type, typename... Types>
+void output(Type head, Types... args) 
+{
+    std::cout << head << std::endl;
+    output(args...);
+}
+
+template <typename Type>
+void output(Type arg)
+{
+    std::cout << arg << std::endl;
+}
+
+
+
+void switch_run();
+void output_test();
+void optional_test();
 
 
 #endif
