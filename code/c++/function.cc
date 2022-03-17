@@ -38,7 +38,7 @@ void func_test ()
     Func func_caller;
     func_caller(func_arg);
 
-
+    // functional 必须使用 swap
     std::function<int(const std::string &)> caller = func;
     caller("caller");
 

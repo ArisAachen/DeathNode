@@ -1,7 +1,12 @@
 
+#include "thread.h"
 
+#include <functional>
 #include <iostream>
 #include <cstring>
+#include <string>
+#include <tuple>
+#include <type_traits>
 
 void test_get_line() {
     const int size = 20;
@@ -34,28 +39,24 @@ void test_struct() {
 }
 
 void test_ano_union () {
-    struct test {
-        union 
-        {
-            std::string message;
-            int id;
-        };
+    std::cout << "test_ano_union" << std::endl;
+    // struct test {
+    //     union 
+    //     {
+    //         std::string message;
+    //         int id;
+    //     };
         
-    } only ;
+    // } only ;
 
-    only.message = "test";
-
-
+    // only.message = "test";
 
 }
 
 
-
 int main() {
-
-    test_get_line();
-
-
+    
+    Thread th("test", test_ano_union);
 
     return 1;
 }
