@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <iostream>
 #include <iterator>
+#include <ostream>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -201,6 +203,84 @@ void map_at_test() {
 void map_static_test() {
     std::map<std::string, MapStruct> map_tmp;
     map_tmp["aaa"] = MapStruct{};
+    
+}
+
+void stl_mem_test() {
+    typedef std::map<std::string, int> TestMap;
+
+    TestMap mem;
+    mem.insert(TestMap::value_type("aaa", 2));
+}
+
+void iter_test() {
+    std::vector<int> test = {1, 2, 3, 4};
+    auto pos = test.begin();
+    std::cout << *pos << std::endl;
+    std::cout << *pos << std::endl;
+
+    auto pos2 = pos;
+    ++pos;
+    std::cout << *pos2 << std::endl;
+}
+
+// 反向迭代器
+void reverse_iter_test() {
+    std::vector<int> vec = {1, 2, 3, 4};
+    auto pos = vec.begin() + 2;
+    std::cout << "normal " << *pos << std::endl;
+    std::vector<int>::const_reverse_iterator rpos(pos);
+    std::cout << "reverse " << *rpos << std::endl;
+}
+
+void inserter_iter_test() {
+    std::vector<int> vec = {1, 2, 3, 4};
+    std::back_inserter(vec) = 5;
+    std::cout << vec.size() << std::endl;
+}
+
+void stream_iter_test() {
+    std::ostream_iterator<int> iter(std::cout, "\n");
+    iter = 1;
+    ++iter;
+    iter = 2;
+}
+
+
+struct FuncObj {
+    int num {0};
+
+    void operator()(int m) {
+        num++;
+        std::cout << "current num is " << num << std::endl;
+    }
+};
+
+void func_obj_test() {
+    std::vector<int> vec = {1, 2, 3, 4};
+    std::for_each(vec.begin(), vec.end(), FuncObj());
+
+    // 此处是按值传递
+    FuncObj obj;
+    std::for_each(vec.begin(), vec.end(), obj);
+    std::cout << "end is " << obj.num << std::endl;
+
+    // 指明按引用传递
+    FuncObj tmp = std::for_each<std::vector<int>::iterator, FuncObj&>(vec.begin(), vec.end(), obj);
+    std::cout << "ref end is " << obj.num << std::endl;
+    std::cout << "tmp end is " << tmp.num << std::endl;
+}
+
+void tie_test() {
+    std::stringstream ss;
+    
+    std::string msg = "message";
+    ss << msg;
+
+    ss.tie(&std::cout);
+
+    std::ostream out(std::cout.rdbuf());
+    out << "mem";
 }
 
 int main() {
@@ -213,7 +293,13 @@ int main() {
     // vector_alfunc_test();
     // array_init_test();
     // map_at_test();
-    map_static_test();
+    // map_static_test();
+    // iter_test();
+    // reverse_iter_test();
+    // inserter_iter_test();
+    // stream_iter_test();
+    // func_obj_test();
+    tie_test();
 
     return 1;
 }
