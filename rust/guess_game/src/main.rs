@@ -57,11 +57,6 @@ fn ref_test() {
 }
 
 fn find_word() -> usize {
-    let s = String::from("hello world");
-    let slice = &s[0..5];
-    println!("{}ss", slice);
-
-
     let exp = String::from("abcde");
     let slice = &exp[0..3];
     println!("slice is {}", slice);
@@ -73,6 +68,10 @@ fn find_word() -> usize {
     }
 
     exp.len()
+}
+
+fn find_slice(slice : &str) -> &str {
+    &slice[..slice.len() - 1]
 }
 
 fn ref_mut_string(message : &mut String) {
@@ -88,12 +87,97 @@ fn control_flower() {
     }
 }
 
+
+#[derive(Debug)]
+struct User {
+    username: String,
+    password: String,
+    count: u16
+}
+
+struct Tuple (u16, u16, String);
+
+fn user_constructor() {
+    let username = String::from("arch");
+
+    let user = User {
+        username,
+        password: String::from("password"),
+        count: 1
+    };
+
+    println!("{:?}", user);
+
+    dbg!(&user);
+}
+
+#[derive(Debug)]
+struct Rectange {
+    width : u32,
+    height : u32
+}
+
+impl Rectange {
+    fn new(width : u32, height: u32) -> Rectange {
+        Rectange {
+            width,
+            height
+        }
+    }
+
+    fn area(&self) -> u32{
+        self.width * self.height
+    }
+}
+
+fn calculate(rec : &Rectange) -> u32 {
+    rec.width * rec.height
+}
+
+fn call_cal() {
+    let body = Rectange {
+        width : 1,
+        height : 2
+    };
+    println!("box is {:?}, result: {}", body, calculate(&body));
+
+    let body_r = Rectange::new(1, 2);
+    println!("box is {:?}, result: {}", body_r, body_r.area());
+}
+
+#[derive(Debug)]
+enum IpAddr {
+    V4 (String),
+    V6 (String)
+}
+
+fn out_addr() {
+    let home = IpAddr::V4(String::from("127.0.0.1"));
+    println!("addr is {:?}", home);
+}
+
+enum Message {
+    None, 
+    Num (u32),
+    Info (String, u32)
+}
+
+fn if_let() {
+    let let_num = Some(5);
+    if let Some(num) = let_num {
+        println!("num is {}", num);
+    }
+}
+
 fn main() {
     println!("run game");
     // read_num();
     // guess_game();
     // const_word();
-    tuple_test();
-    ref_test();
-    find_word();
+    // tuple_test();
+    // ref_test();
+    // find_word();
+    // user_constructor();
+    call_cal();
+    out_addr();
 }
