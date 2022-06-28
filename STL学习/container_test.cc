@@ -170,7 +170,7 @@ void map_erase_test() {
         {"aaa", 1},
         {"bbb", 2}
     };
-    // c++11引起异常的操作
+    // 引起异常的操作
     for (auto pos = map_tmp.begin(); pos != map_tmp.end(); ++pos) {
         // 在循环中删除迭代器将会引发异常 
         if (pos->second == 2) {
@@ -179,6 +179,13 @@ void map_erase_test() {
             // 正常
             pos = map_tmp.erase(pos);
         }
+    }
+    // c++11 正确的操作
+    for (auto pos = map_tmp.begin(); pos != map_tmp.end();) {
+        if (pos ->second == 2) 
+            pos = map_tmp.erase(pos);
+        else 
+            ++pos;
     }
     // c++11之前
     for (auto pos = map_tmp.begin(); pos != map_tmp.end(); ) {

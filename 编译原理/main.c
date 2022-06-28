@@ -1,20 +1,8 @@
-#include <stdlib.h>
+/* main.c */
+#include <stdio.h>
 
-void cx_register() 
+int main(void)
 {
-    int n = 2;
-    while (n > 0) {
-        n--;
-    }
+	push('a');
+	return 0;
 }
-
-void add_register()
-{
-    int n = 2 + 3;
-}
-
-
-int main() {
-
-}
-
