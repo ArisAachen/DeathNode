@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
-#include <unistd.h>
 
 // 兄弟-儿子表示法
 struct TreeNode_Child_Sibling {
@@ -380,7 +379,7 @@ BinaryTreeNode* left_right_rotation(BinaryTreeNode* node) {
 }
 
 BinaryTreeNode* balance_insert(BinaryTreeNode* node, int value) {
-    if (node == nullptr)
+    if (!node)
         return new BinaryTreeNode(value);
     if (node->value > value) 
         node->left = balance_insert(node->left, value);
@@ -400,11 +399,45 @@ BinaryTreeNode* balance_insert(BinaryTreeNode* node, int value) {
     return node;
 }
 
+BinaryTreeNode* balance_delete(BinaryTreeNode* node, int value) {
+    if (!node)
+        throw std::logic_error("node is empty");
+    else if (node->value < value)   
+        node->right = balance_delete(node->right, value);
+    else if (node->value > value) 
+        node->left = balance_delete(node->left, value);
+    else {
+        if (!node->left && !node->right) {
+            delete node;
+            node = nullptr;
+        } else if (node->left && !node->right) {
+            delete node;
+            node = node->left;
+        } else if (!node->left && node->right) {
+            delete node;
+            node = node->right;
+        } else {
+            
+        }
+    }
+}
+
+
 class BalanceTree {
 public:
     void insert_node(int value) {
         root_ = balance_insert(root_, value);
+        std::cout << "balance tree now is: ";
         preorder_stack(root_);
+        std::cout << std::endl << std::endl;
+    }
+
+    void delete_node(int value) {
+
+    }
+
+    BinaryTreeNode* search_node(int value) {
+        
     }
 
 private:
