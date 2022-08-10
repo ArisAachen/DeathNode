@@ -2,3 +2,6 @@
 2. httpdns   
 3. 无状态连接, token  
 4. redis + session  
+5. 短时分区故障    
+6. 测试 两台 nginx 宕机时, session 保持情况  
+7. http cookie 和 会话   
