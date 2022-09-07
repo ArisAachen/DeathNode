@@ -231,6 +231,7 @@ void iter_test() {
     std::cout << *pos2 << std::endl;
 }
 
+#include <list>
 // 反向迭代器
 void reverse_iter_test() {
     std::vector<int> vec = {1, 2, 3, 4};
@@ -238,6 +239,9 @@ void reverse_iter_test() {
     std::cout << "normal " << *pos << std::endl;
     std::vector<int>::const_reverse_iterator rpos(pos);
     std::cout << "reverse " << *rpos << std::endl;
+    std::list<int> con {2, 3, 4};
+    auto lpos = std::find(con.begin(), con.end(), 3);
+    con.insert(lpos, 2);
 }
 
 void inserter_iter_test() {

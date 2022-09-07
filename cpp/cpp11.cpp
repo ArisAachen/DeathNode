@@ -53,3 +53,9 @@ void test_call_once() {
     std::once_flag once;
     std::call_once(once, []() {});
 }
+
+class Base {
+public:
+    Base() = default;
+
+};

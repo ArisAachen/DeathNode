@@ -24,6 +24,17 @@ private:
     std::list<int> lst_;
 };
 
+class Queue {
+public:
+    std::optional<int> pop() {
+        if (lst_.empty()) 
+            return std::nullopt;
+    }
+
+private:
+    std::list<int> lst_;
+};
+
 int main() {
     Stack stack;
     stack.push(1);

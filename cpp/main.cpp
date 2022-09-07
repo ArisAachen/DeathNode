@@ -53,8 +53,16 @@ void test_ano_union () {
 
 }
 
+void size(char* buf) {
+    std::cout << "func size is " << sizeof(buf) << std::endl;
+}
 
 int main() {
+    char buf[] = "abc";
+    size(buf);
+    std::cout << "main char size is " << strlen(buf) << std::endl;
+    int* arr = new int(12);
+    std::cout << "main int size is " << sizeof(arr) << std::endl;
     
     Thread th("test", test_ano_union);
 

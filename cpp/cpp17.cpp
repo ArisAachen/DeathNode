@@ -1,10 +1,17 @@
+#include <cstdio>
 #include <exception>
 #include <iostream>
+#include <string>
 
 // fold expressions
 template<typename... Args>
 void print_args(Args... args) {
-    (std::cout << ... << args) << std::endl;
+    std::cout << (... << args) << std::endl;
+}
+
+template<typename... Args> 
+void printfs(std::string& msg, Args... args) {
+    std::printf(msg, args...);
 }
 
 #include <any>
@@ -27,6 +34,17 @@ void optional_test() {
         std::cout << "has no value" << std::endl;
     }
 }
+
+#include <variant> 
+void variant_test() {
+    std::variant<int, double> value;
+    value = 1;
+    std::visit([](double num) {
+        std::cout << "value is " << num << std::endl;
+    }, value);
+}
+
+
 
 int main() {
     print_args(1, 2);

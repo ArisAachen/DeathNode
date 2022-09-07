@@ -22,7 +22,7 @@ inline void _deallocator(T* buffer) {
 
 template<typename T1, typename T2>
 inline void _constructor(T1* ptr, const T2& value) {
-    new (p) T1(value);
+    new (ptr) T1(value);
 }
 
 template<typename T>
