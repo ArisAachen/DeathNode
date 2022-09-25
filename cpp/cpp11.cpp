@@ -1,6 +1,8 @@
+#include <cctype>
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
+#include <string>
 #include <thread>
 #include <chrono>
 #include <future>
@@ -49,13 +51,77 @@ void test_condition_variant() {
     condition.wait(lck, [&check]() { return check;});
 }
 
+
 void test_call_once() {
     std::once_flag once;
     std::call_once(once, []() {});
+}
+
+#include <regex>
+void test_regex() {
+    std::string message("hello world end");
+    auto reg = std::regex(" ");
+    std::sregex_token_iterator iter(message.begin(), message.end(), reg, {0, 2});
+    std::sregex_token_iterator end;
+    for (; iter != end; iter++) 
+        std::cout << *iter << std::endl;
 }
 
 class Base {
 public:
     Base() = default;
 
+    virtual void base() {
+
+    }
+
+    ~Base() {
+        std::cout << "Base destroy is called" << std::endl;        
+    } 
 };
+
+class Basic {
+public:
+    virtual void base() {
+        
+    }
+
+    ~Basic() {
+        std::cout << "Basic destroy is called" << std::endl;        
+    } 
+};
+
+class Father : public Base, public Basic {
+public:
+    virtual void base() {
+        
+    } 
+
+    ~Father() {
+        std::cout << "father destroy is called" << std::endl;
+    }
+};
+
+
+class Empty {
+public:
+
+};
+
+void leng(char* len) {
+    std::cout << "length is " << sizeof(len) << std::endl;
+}
+
+int main() {
+    // leng("ok");
+    // std::cout << std::tolower('A') << std::endl;
+    // std::cout << "Base size: " << sizeof(Base) << std::endl;
+    // std::cout << "Father size: " << sizeof(Father) << std::endl;
+    Basic* bc = new Father();
+    delete bc;
+
+
+    // test_regex();
+
+    return 0;
+} 

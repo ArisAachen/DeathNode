@@ -79,12 +79,20 @@ int main() {
     // (vpos++)++;
     // std::cout << *vpos << std::endl;
 
-    std::list<int> con {2, 3, 4};
-    auto lpos = std::find(con.begin(), con.end(), 3);
-    con.insert(lpos, 2);
-    std::for_each(con.cbegin(), con.cend(), [](const auto& elem) {
-        std::cout << elem << std::endl;
-    });
+    // std::list<int> con {2, 3, 4};
+    // auto lpos = std::find(con.begin(), con.end(), 3);
+    // con.insert(lpos, 2);
+    // std::for_each(con.cbegin(), con.cend(), [](const auto& elem) {
+    //     std::cout << elem << std::endl;
+    // });
+    std::unordered_map<char, int> char_map;
+    std::string input("hello world");
+    for (char c : input) 
+        char_map[c]++;
+
+    for (const auto elem : char_map) {
+        std::cout << "key: " << elem.first << ", second: " << elem.second << std::endl;
+    }
 
     // sleep(5);
 
