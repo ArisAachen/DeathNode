@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <iostream>
+#include <optional>
+#include <vector>
 
 void print_arr(int* arr, int count) {
     std::cout << "arr is: ";
@@ -135,6 +137,20 @@ void test_heap_sort() {
     print_arr(arr, 6);    
 }
 
+void select_sort(std::vector<int>& vec) {
+    for (int index = 0; index < vec.size(); index++) {
+        for (int jdex = 0; jdex < vec.size(); jdex++) {
+            if (vec[index] > vec[jdex])
+                std::swap(vec[index], vec[jdex]);
+        }
+    }
+}
+
+void bubble_sort(std::vector<int>& vec) {
+    
+}
+
+
 int main() {
     test_select_sort();
     test_bubble_sort();
@@ -144,3 +160,4 @@ int main() {
     test_heap_sort();
     return 1;
 }
+
