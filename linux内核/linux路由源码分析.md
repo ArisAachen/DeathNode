@@ -57,7 +57,7 @@ qemu-system-x86_64 -kernel ~/Desktop/OpenSource/linux/arch/x86_64/boot/bzImage -
 ``` shell
 ip link set dev eth0 up
 ip addr add dev eth0 192.168.10.10/24
-ip route add default via 192.168.10.1
+ip route add default via 192.168.10.10
 ```
 
 ### 获取配置
@@ -295,14 +295,13 @@ static int fib_insert_node(struct trie *t, struct key_vector *tp,
 
 		// 先把tn的parent挂成tp, 后续是把leaf存在tn下
 		NODE_INIT_PARENT(tn, tp);
-
+        // 这里应该是要把原先的节点挂载这个新的节点下面
+        // TODO: get_index(key, tn) ^ 1为什么是这个
 		put_child(tn, get_index(key, tn) ^ 1, n);
-
-		/* start adding routes into the node */
+        // 这个新节点也要挂载原先父节点下面
 		put_child_root(tp, key, tn);
 		node_set_parent(n, tn);
-
-		/* parent now has a NULL spot where the leaf can go */
+		// 父节点已经变成这个新节点了
 		tp = tn;
 	}
 
@@ -396,13 +395,17 @@ static struct key_vector *resize(struct trie *t, struct key_vector *tn)
 	}
 }
 
-
+// 扩展key_vector
 static struct key_vector *inflate(struct trie *t,
 				  struct key_vector *oldtnode)
 {
 	// 这一步做的就是, 创建一个新的key_vector, 
-	// 将原有的oldnote的子节点挂上去, 但是多留了一位置, 从pos-1来看, 应该是开头的位置留空了
+	// 这里保存key不变, 但是pos和slen都少了一位, 但是key不变, 是因为key与/24等关联
+	// slen越小, 则说明他离key越远, 可以容纳的数量越大, 而bits增加
+	// key不变的原因是因为 shift = pos + bits, 这里 -1 + 1, 所以是不变的
 	tn = tnode_new(oldtnode->key, oldtnode->pos - 1, oldtnode->bits + 1);
+	
+	tnode_free_init(oldtnode);
 }
 
 // 将child节点推送进父节点
@@ -418,6 +421,38 @@ static inline void put_child_root(struct key_vector *tp, t_key key,
 	else
 	    // TODO 扩展分配
 		put_child(tp, get_index(key, tp), n);	
+}
+
+// 将n挂载tn下
+static void put_child(struct key_vector *tn, unsigned long i,
+		      struct key_vector *n)
+{
+    // 查看一下是不是有人挂
+    struct key_vector *chi = get_child(tn, i);
+    // TODO: 
+	if (!n && chi)
+		empty_child_inc(tn);
+    // 如果想要挂载的节点非空, 而原先的位置没有放的话
+    // 那么应该要把empty-1, 如果没有empty的话, 可能得考虑覆盖了, 所以说full-1
+	if (n && !chi)
+		empty_child_dec(tn);
+    // chi如果是空的, 那就是以前是非空的, 那么was_full为false
+    // TODO: 如果chi为非空, 如何处理
+    wasfull = tnode_full(tn, chi);
+    // 这里向看看n地下和tn还有没有空间可以放东西
+    isfull = tnode_full(tn, n);
+    // TODO 这里有个疑问, 为什么判断children_full, 需要看当前节点的状态呢
+    // 如果说当前的节点如果空的, 但是子节点还能放东西, 那说明full是false
+	if (wasfull && !isfull)
+		tn_info(tn)->full_children--; 
+    // 如果说当前这个节点非空, 但是子节点满了, 那就说明full+1
+	else if (!wasfull && isfull)
+		tn_info(tn)->full_children++;
+    // TODO: 这里为什么父节点的slen要大于子节点的slen
+	if (n && (tn->slen < n->slen))
+		tn->slen = n->slen;
+    // 这里把子节点保存到父节点
+    rcu_assign_pointer(tn->tnode[i], n);
 }
 
 // 创建leaf
