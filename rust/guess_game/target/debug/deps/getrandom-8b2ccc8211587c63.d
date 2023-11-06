@@ -1,0 +1,11 @@
+/home/aris/Desktop/Project/DeathNode/rust/guess_game/target/debug/deps/getrandom-8b2ccc8211587c63.rmeta: /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/lib.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/error.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/util.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/error_impls.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/util_libc.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/use_file.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/linux_android.rs
+
+/home/aris/Desktop/Project/DeathNode/rust/guess_game/target/debug/deps/getrandom-8b2ccc8211587c63.d: /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/lib.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/error.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/util.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/error_impls.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/util_libc.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/use_file.rs /home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/linux_android.rs
+
+/home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/lib.rs:
+/home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/error.rs:
+/home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/util.rs:
+/home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/error_impls.rs:
+/home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/util_libc.rs:
+/home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/use_file.rs:
+/home/aris/.cargo/registry/src/index.crates.io-6f17d22bba15001f/getrandom-0.2.6/src/linux_android.rs:
