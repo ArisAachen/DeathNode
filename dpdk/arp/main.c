@@ -1,5 +1,5 @@
 #include <rte_arp.h>
-#include <rte_byteorder.h>
+#include <rte_dev.h>
 #include <rte_eal.h>
 #include <rte_ether.h>
 #include <rte_flow.h>
@@ -31,6 +31,36 @@ const struct rte_eth_conf g_eth_conf = {
 
     }
 };
+
+/*
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute
+       valid_lft forever preferred_lft forever
+2: ens160: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 00:0c:29:04:4d:d3 brd ff:ff:ff:ff:ff:ff
+    altname enp3s0
+    inet 192.168.121.171/24 brd 192.168.121.255 scope global dynamic noprefixroute ens160
+       valid_lft 43186sec preferred_lft 43186sec
+    inet6 fe80::e3a3:62d6:811:c372/64 scope link noprefixroute
+       valid_lft forever preferred_lft forever
+3: ens192: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 00:0c:29:04:4d:dd brd ff:ff:ff:ff:ff:ff
+    altname enp11s0
+    inet 192.168.121.181/24 brd 192.168.121.255 scope global dynamic noprefixroute ens192
+       valid_lft 43186sec preferred_lft 43186sec
+    inet6 fe80::4da7:a788:52da:5af5/64 scope link noprefixroute
+       valid_lft forever preferred_lft forever
+4: ens33: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:0c:29:04:4d:c9 brd ff:ff:ff:ff:ff:ff
+    altname enp2s1
+    inet 192.168.121.161/24 brd 192.168.121.255 scope global dynamic noprefixroute ens33
+       valid_lft 43186sec preferred_lft 43186sec
+    inet6 fe80::eecb:50cd:113e:4b03/64 scope link noprefixroute
+       valid_lft forever preferred_lft forever
+*/
 
 // define local mac addr
 static struct rte_ether_addr g_local_mac_addr = {
@@ -68,11 +98,11 @@ int get_print_addr_from_be(rte_be32_t addr, char *format_addr) {
 // send_arp_msg
 int send_arp_msg(struct rte_ether_addr src_mac_addr, rte_be32_t src_ip_addr,
     struct rte_ether_addr dst_mac_addr, rte_be32_t dst_ip_addr, 
-    rte_be16_t op_code, struct rte_mbuf *mbuf) {
-    if (mbuf == NULL)
+    rte_be16_t op_code, uint8_t *msg) {
+    if (msg == NULL)
         rte_exit(EXIT_FAILURE, "no free buffer");
     // offset arp header 
-    struct rte_arp_hdr *arp_header = rte_pktmbuf_mtod_offset(mbuf, struct rte_arp_hdr *, sizeof(struct rte_ether_addr));
+    struct rte_arp_hdr *arp_header = (struct rte_arp_hdr *)(msg + sizeof(struct rte_ether_hdr));
     arp_header->arp_data.arp_sha = src_mac_addr;
     arp_header->arp_data.arp_sip = rte_cpu_to_be_32(src_ip_addr);
     arp_header->arp_data.arp_tha = dst_mac_addr;
@@ -81,16 +111,16 @@ int send_arp_msg(struct rte_ether_addr src_mac_addr, rte_be32_t src_ip_addr,
     arp_header->arp_protocol = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);
     arp_header->arp_opcode = rte_cpu_to_be_16(op_code);
     arp_header->arp_hlen = RTE_ETHER_ADDR_LEN;
-    arp_header->arp_plen = sizeof(rte_be16_t);
+    arp_header->arp_plen = sizeof(rte_be32_t);
     return 0;
 }
 
 // send_eth_msg send ether msg
 int send_eth_msg(struct rte_ether_addr src_mac_addr, struct rte_ether_addr dst_mac_addr,
-    const rte_be16_t eth_type, struct rte_mbuf* mbuf) {
-    if (mbuf == NULL)
+    const rte_be16_t eth_type, uint8_t *msg) {
+    if (msg == NULL)
         rte_exit(EXIT_FAILURE, "no free buffer \n");
-    struct rte_ether_hdr *ether_hdr = (struct rte_ether_hdr *)rte_pktmbuf_mtod(mbuf, struct rte_ether_hdr *);
+    struct rte_ether_hdr *ether_hdr = (struct rte_ether_hdr *)msg;
     ether_hdr->src_addr = src_mac_addr;
     ether_hdr->dst_addr = dst_mac_addr;
     ether_hdr->ether_type = rte_cpu_to_be_16(eth_type);
@@ -104,6 +134,11 @@ int send_eth_msg(struct rte_ether_addr src_mac_addr, struct rte_ether_addr dst_m
 }
 
 int init_port(uint16_t port_id, struct rte_mempool *mempool) {
+    // get device info 
+    struct rte_eth_dev_info dev_info = {};
+    if (rte_eth_dev_info_get(port_id, &dev_info) != 0) {
+        rte_exit(EXIT_FAILURE, "get device info failed");
+    }
     // bind memory to recv device
     struct rte_eth_conf dev_conf = g_eth_conf;
     if (rte_eth_dev_configure(port_id, 1, 1, &dev_conf) != 0) {
@@ -114,21 +149,22 @@ int init_port(uint16_t port_id, struct rte_mempool *mempool) {
         NULL, mempool) != 0) {
         rte_exit(EXIT_FAILURE, "config rx queue failed");
     }
+    struct rte_eth_txconf tx_conf = dev_info.default_txconf;
     // set device tx port config
-    if (rte_eth_tx_queue_setup(port_id, 0, 512, rte_eth_dev_socket_id(port_id), NULL) != 0) {
+    if (rte_eth_tx_queue_setup(port_id, 0, 512, rte_eth_dev_socket_id(port_id), &tx_conf) != 0) {
         rte_exit(EXIT_FAILURE, "config tx queue failed");
     }
-    // start device 
-    if (rte_eth_dev_start(port_id) != 0) {
-        rte_exit(EXIT_FAILURE, "start device failed");
+    // get device info 
+    if (rte_eth_macaddr_get(g_dpdk_port, &g_local_mac_addr) != 0) {
+        rte_exit(EXIT_FAILURE, "get device mac addr failed");
     }
     // enter promiscuous mode
     if (rte_eth_promiscuous_enable(port_id) != 0) {
         rte_exit(EXIT_FAILURE, "enter promiscuous failed");
     }
-    // get device info 
-    if (rte_eth_macaddr_get(g_dpdk_port, &g_local_mac_addr) != 0) {
-        rte_exit(EXIT_FAILURE, "get device mac addr failed");
+    // start device 
+    if (rte_eth_dev_start(port_id) != 0) {
+        rte_exit(EXIT_FAILURE, "start device failed");
     }
     print_mac_addr(&g_local_mac_addr);
     printf("init device success \n");
@@ -196,21 +232,25 @@ void recv_dev_buffer(uint16_t port_id, struct rte_mempool *pool) {
                     dst_ip_addr == g_local_ip_addr) {
                     printf("recv arp request \n");
                     struct rte_mbuf *send_mbuf = rte_pktmbuf_alloc(pool);
+                    // notice: dont use rte_pktmbuf_mtod_offset to add arp header
+                    // because this func use mbuf->buf_addr, when send packet, this member not set yet
+                    // but when recv packet, member will be set
+                    uint8_t *msg = rte_pktmbuf_mtod(send_mbuf, uint8_t *);
                     // build ether message
                     if (send_eth_msg(g_local_mac_addr, arp_header->arp_data.arp_sha, 
-                        RTE_ETHER_TYPE_ARP, send_mbuf) != 0)
+                        RTE_ETHER_TYPE_ARP, msg) != 0)
                         rte_exit(EXIT_FAILURE, "create send ether msg failed \n");
                     // build arp message
                     if (send_arp_msg(g_local_mac_addr, g_local_ip_addr, 
-                        arp_header->arp_data.arp_sha, dst_ip_addr, 
-                        RTE_ARP_OP_REPLY, send_mbuf) != 0)
+                        arp_header->arp_data.arp_sha, src_ip_addr, 
+                        RTE_ARP_OP_REPLY, msg) != 0)
                         rte_exit(EXIT_FAILURE, "create arp reply msg failed \n");
                     // set arp length
                     uint16_t total_length = sizeof(struct rte_ether_hdr) + sizeof(struct rte_arp_hdr);
                     send_mbuf->pkt_len = total_length;
                     send_mbuf->data_len = total_length;
                     // send eth tx burst
-                    if (rte_eth_tx_burst(g_dpdk_port, 0, &send_mbuf, 1) < 0)
+                    if (rte_eth_tx_burst(g_dpdk_port, 0, &send_mbuf, 1) == 0)
                         rte_exit(EXIT_FAILURE, "send arp reply failed \n");
                     // free memory
                     rte_pktmbuf_free(send_mbuf);
