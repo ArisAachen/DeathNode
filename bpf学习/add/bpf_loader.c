@@ -1,10 +1,7 @@
+// bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+// gcc -o bpf_loader bpf_loader.c -lbpf
 #include <unistd.h>
-#include <sys/socket.h>
 #include <bpf/libbpf.h>
-
-int test_send() {
-    send(0, NULL, 0, 0);
-}
 
 int main() {
     struct bpf_object *obj =  bpf_object__open_file("bpf_program.bpf.o", NULL);
@@ -16,7 +13,7 @@ int main() {
         fprintf(stderr, "Error loading BPF object file\n");
         return 1;
     }
-    struct bpf_program *program =  bpf_object__find_program_by_name(obj, "print_dns_request");
+    struct bpf_program *program =  bpf_object__find_program_by_name(obj, "add");
     if (!program) {
         fprintf(stderr, "Error finding BPF program in object file\n");
         return 1;
@@ -26,6 +23,6 @@ int main() {
         return 1;
     }
     printf("BPF program loaded and attached successfully\n");
-    sleep(150000);
+    sleep(60);
     return 0;
 }
