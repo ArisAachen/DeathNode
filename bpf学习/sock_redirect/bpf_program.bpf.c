@@ -1,33 +1,55 @@
-#include <linux/bpf.h>
+#include "vmlinux.h"
+#include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
-#include <linux/if_ether.h>
-#include <linux/ip.h>
-#include <linux/tcp.h>
+#include <bpf/bpf_core_read.h>
 
 struct {
     __uint(type, BPF_MAP_TYPE_SOCKMAP);
     __uint(max_entries, 10);
-    __type(key, __u32);
-    __type(value, __u64);
+    __type(key, int);
+    __type(value, int);
+} sock_store SEC(".maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_SOCKMAP);
+    __uint(max_entries, 10);
+    __type(key, int);
+    __type(value, int);
 } sock_redir SEC(".maps");
 
-// 解析程序，用于解析数据包
-SEC("sk_skb/stream_parser")
-int bpf_prog_parser(struct __sk_buff *skb) {
-    // 简单地返回数据包长度作为解析结果
-    return skb->len;
-}
-
-// 判决程序，用于决定数据包处理方式
-SEC("sk_skb/stream_verdict")
+SEC("sk_skb")
 int bpf_prog_verdict(struct __sk_buff *skb) {
-    __u32 lport = skb->local_port; // 获取本地端口
-    __u32 idx = 0;
+    int key = 0;
+    // // 从sock_store中查找fd
+    // int *fd = bpf_map_lookup_elem(&sock_store, &key);
+    // if (!fd) {
+    //     return SK_PASS;
+    // }
+    char enter[] = "bpf_prog_verdict: enter\n";
+    bpf_trace_printk(enter, sizeof(enter));
 
-    // 如果本地端口是 10000，则重定向数据包
-    if (lport == 10000) {
-        return bpf_sk_redirect_map(skb, &sock_redir, idx, 0);
+    // check if is ip type
+    if (bpf_ntohs(skb->protocol) != 0x800) {
+        char fmt[] = "bpf_prog_verdict: not ip type\n";
+        bpf_trace_printk(fmt, sizeof(fmt));
+        return SK_PASS;
     }
+
+    char fmt[] = "bpf_prog_verdict: %d -> %d \n";
+    bpf_trace_printk(fmt, sizeof(fmt), skb->local_port, bpf_ntohs(skb->remote_port >> 16));
+
+    
+    if (skb->local_port == 5201) {
+        char fmt[] = "bpf_prog_verdict: client -> server\n";
+        bpf_trace_printk(fmt, sizeof(fmt));
+        return bpf_sk_redirect_map(skb, &sock_redir, 0, 0);
+    } else if (bpf_ntohs(skb->remote_port >> 16) == 5201) {
+        char fmt[] = "bpf_prog_verdict: server -> client\n";
+        bpf_trace_printk(fmt, sizeof(fmt));
+        return bpf_sk_redirect_map(skb, &sock_store, 0, 0);
+    }
+
+
     // 否则，数据包通过
     return SK_PASS;
 }
